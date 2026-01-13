@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamLink - Instant Video Streaming</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0B0F14;
+            --bg-surface: #121826;
+            --bg-card: #161B22;
+            --primary: #4F8CFF;
+            --accent: #22D3EE;
+            --text-primary: #E5E7EB;
+            --text-secondary: #9CA3AF;
+            --border: #1F2937;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        nav {
+            padding: 20px 40px;
+            background: rgba(18, 24, 38, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .hero-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            margin-bottom: 80px;
+        }
+
+        .hero-content h1 {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-content p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .input-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            backdrop-filter: blur(10px);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-surface);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(79, 140, 255, 0.2);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(79, 140, 255, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: var(--bg-surface);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            flex: 1;
+        }
+
+        button.secondary:hover {
+            background: rgba(34, 211, 238, 0.1);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .info-box.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-box.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-left: 3px solid #22C55E;
+            color: #86EFAC;
+        }
+
+        .info-box.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 3px solid #EF4444;
+            color: #FCA5A5;
+        }
+
+        .info-box.warning {
+            background: rgba(234, 179, 8, 0.1);
+            border-left: 3px solid #EAB308;
+            color: #FDEF89;
+        }
+
+        .hero-illustration {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+        }
+
+        .icon {
+            width: 120px;
+            height: 120px;
+            stroke: var(--primary);
+            fill: none;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.8;
+        }
+
+        .player-section {
+            margin-top: 60px;
+        }
+
+        .player-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 40px rgba(79, 140, 255, 0.1);
+            display: none;
+        }
+
+        .player-card.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .play-button-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .play-button-overlay svg {
+            width: 80px;
+            height: 80px;
+            filter: drop-shadow(0 4px 12px rgba(79, 140, 255, 0.4));
+        }
+
+        .play-button-overlay:hover svg {
+            width: 90px;
+            height: 90px;
+            filter: drop-shadow(0 8px 24px rgba(79, 140, 255, 0.6));
+        }
+
+        .play-button-overlay.hidden {
+            display: none;
+        }
+
+        .video-js {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .video-js.vjs-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 0 !important;
+            z-index: 1000 !important;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        select {
+            padding: 10px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 12px rgba(79, 140, 255, 0.2);
+        }
+
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .info-value.accent {
+            color: var(--accent);
+        }
+
+        .recent-section {
+            margin-top: 60px;
+            display: none;
+        }
+
+        .recent-section.show {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .recent-item {
+            padding: 12px 16px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .recent-item:hover {
+            background: var(--bg-card);
+            border-color: var(--primary);
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .hero-content h1 {
+                font-size: 32px;
+            }
+
+            nav {
+                padding: 16px 20px;
+            }
+
+            .app {
+                padding: 20px 16px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-content">
+            <div class="nav-brand">▶ StreamLink</div>
+        </div>
+    </nav>
+
+    <div class="app">
+        <section class="hero-section" id="heroSection">
+            <div class="hero-content">
+                <h1>Stream Videos Instantly</h1>
+                <p>Paste any direct video link and start streaming without downloading.</p>
+                
+                <div class="input-card">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="urlInput" 
+                            placeholder="Paste direct video link..."
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div id="infoBox" class="info-box"></div>
+                </div>
+            </div>
+
+            <div class="hero-illustration">
+                <svg class="icon" viewBox="0 0 64 64">
+                    <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor"/>
+                    <polygon points="26,20 26,44 44,32" fill="currentColor" opacity="0.8"/>
+                    <path d="M 48 12 Q 56 12 56 20 L 56 44 Q 56 52 48 52" fill="none"/>
+                    <path d="M 16 12 Q 8 12 8 20 L 8 44 Q 8 52 16 52" fill="none" stroke="currentColor" stroke-dasharray="3,3"/>
+                </svg>
+            </div>
+        </section>
+
+        <section class="player-section">
+            <div class="player-card" id="playerCard">
+                <div class="video-container" id="videoContainer">
+                    <div class="play-button-overlay" id="playButtonOverlay" onclick="playButtonClicked()">
+                        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" color="#4F8CFF">
+                            <circle cx="32" cy="32" r="30" stroke-width="2"/>
+                            <polygon points="26,20 26,44 44,32" fill="currentColor"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>Quality</label>
+                        <select id="qualitySelect" onchange="changeQuality()">
+                            <option value="">Auto</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Audio Track</label>
+                        <select id="audioSelect" onchange="changeAudio()">
+                            <option value="">Default</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>&nbsp;</label>
+                        <button id="newUrlBtn" onclick="resetToNewUrl()" class="secondary">New URL</button>
+                    </div>
+                    <div class="control-group">
+                        <label>&nbsp;</label>
+                        <button id="playerDownloadBtn" onclick="downloadVideo()">Download</button>
+                    </div>
+                </div>
+
+                <div class="info-panel" id="infoPanel" style="display: none;">
+                    <div class="info-item">
+                        <div class="info-label">Format</div>
+                        <div class="info-value" id="contentType">—</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">File Size</div>
+                        <div class="info-value" id="fileSize">—</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Streaming</div>
+                        <div class="info-value accent" id="rangeSupport">—</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="recent-section" id="recentSection">
+            <div class="section-title">Recent Streams</div>
+            <div class="recent-list" id="recentList"></div>
+            <button class="secondary" onclick="clearRecent()" style="margin-top: 12px; width: 100%;">Clear History</button>
+        </section>
+    </div>
+
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
+
+    <script>
+        const RECENT_KEY = 'streamlink_recent';
+        const MAX_RECENT = 5;
+        let currentUrl = null;
+        let currentStreamData = null;
+        let player = null;
+
+        window.addEventListener('load', () => {
+            loadRecent();
+        });
+
+        function showInfo(message, type = 'warning') {
+            const box = document.getElementById('infoBox');
+            box.textContent = message;
+            box.className = `info-box show ${type}`;
+        }
+
+        function setSpinner(loading) {
+            const spinner = document.getElementById('spinner');
+            const urlInput = document.getElementById('urlInput');
+            if (loading) {
+                urlInput.disabled = true;
+            } else {
+                urlInput.disabled = false;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 'unknown') return '—';
+            bytes = parseInt(bytes);
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        async function validateAndPlay() {
+            const url = document.getElementById('urlInput').value.trim();
+
+            if (!url) {
+                showInfo('Please enter a video URL', 'error');
+                return;
+            }
+
+            setSpinner(true);
+
+            try {
+                const response = await fetch(`/api/validate?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showInfo(`${data.error}`, 'error');
+                    setSpinner(false);
+                    return;
+                }
+
+                currentUrl = url;
+                currentStreamData = data;
+
+                showInfo(`Ready to stream`, 'success');
+                
+                document.getElementById('contentType').textContent = data.content_type || '—';
+                document.getElementById('fileSize').textContent = formatFileSize(data.content_length);
+                document.getElementById('rangeSupport').textContent = 
+                    data.supports_range ? 'Supported' : 'Basic';
+                document.getElementById('infoPanel').style.display = 'grid';
+
+                playVideo(url);
+                addToRecent(url);
+                
+                document.getElementById('heroSection').style.display = 'none';
+                document.getElementById('playerCard').style.display = 'block';
+
+            } catch (error) {
+                showInfo(`Error: ${error.message}`, 'error');
+                setSpinner(false);
+            }
+        }
+
+        function playVideo(url) {
+            const container = document.getElementById('videoContainer');
+            const playerCard = document.getElementById('playerCard');
+            const playOverlay = document.getElementById('playButtonOverlay');
+            
+            // Clear previous video element but keep overlay
+            const oldVideo = container.querySelector('video');
+            if (oldVideo) oldVideo.remove();
+            
+            const video = document.createElement('video');
+            video.id = 'player';
+            video.className = 'video-js vjs-default-skin';
+            video.controls = 'true';
+            video.preload = 'auto';
+            
+            const source = document.createElement('source');
+            source.src = `/stream?url=${encodeURIComponent(url)}`;
+            source.type = 'video/mp4';
+            
+            video.appendChild(source);
+            container.insertBefore(video, playOverlay);
+            playerCard.classList.add('show');
+
+            setTimeout(() => {
+                if (player) player.dispose();
+                player = videojs('player', {
+                    controls: true,
+                    autoplay: false,
+                    preload: 'auto',
+                    width: '100%',
+                    height: 'auto',
+                    bigPlayButton: false
+                });
+
+                // Hide play button overlay when video plays
+                player.on('play', () => {
+                    playOverlay.classList.add('hidden');
+                });
+
+                // Show play button overlay when video pauses or ends
+                player.on('pause', () => {
+                    playOverlay.classList.remove('hidden');
+                });
+
+                player.on('ended', () => {
+                    playOverlay.classList.remove('hidden');
+                });
+            }, 100);
+
+            setSpinner(false);
+        }
+
+        function playButtonClicked() {
+            if (player) {
+                if (player.paused()) {
+                    player.play();
+                } else {
+                    player.pause();
+                }
+            }
+        }
+
+        function downloadVideo() {
+            if (!currentUrl) {
+                showInfo('No video loaded', 'error');
+                return;
+            }
+            
+            showInfo('Download started...', 'warning');
+            const link = document.createElement('a');
+            link.href = `/download?url=${encodeURIComponent(currentUrl)}`;
+            link.click();
+            
+            setTimeout(() => {
+                showInfo('Check your downloads folder', 'success');
+            }, 500);
+        }
+
+        function changeQuality() {}
+        function changeAudio() {
+            const audio = document.getElementById('audioSelect').value;
+            if (audio) {
+                showInfo(`Audio switched`, 'success');
+            }
+        }
+
+        function resetToNewUrl() {
+            document.getElementById('urlInput').value = '';
+            document.getElementById('urlInput').focus();
+            document.getElementById('heroSection').style.display = 'grid';
+            document.getElementById('playerCard').classList.remove('show');
+            setTimeout(() => {
+                document.getElementById('playerCard').style.display = 'none';
+            }, 400);
+            if (player) {
+                player.dispose();
+                player = null;
+            }
+            currentUrl = null;
+            currentStreamData = null;
+        }
+
+        function addToRecent(url) {
+            let recent = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+            recent = recent.filter(u => u !== url);
+            recent.unshift(url);
+            recent = recent.slice(0, MAX_RECENT);
+            localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+            loadRecent();
+        }
+
+        function loadRecent() {
+            const recent = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+            const section = document.getElementById('recentSection');
+            const list = document.getElementById('recentList');
+
+            if (recent.length === 0) {
+                section.classList.remove('show');
+                return;
+            }
+
+            section.classList.add('show');
+            list.innerHTML = recent.map((url) => `
+                <div class="recent-item" onclick="playRecent('${url.replace(/'/g, "\\'")}')">
+                    ${url.substring(0, 80)}${url.length > 80 ? '...' : ''}
+                </div>
+            `).join('');
+        }
+
+        function playRecent(url) {
+            document.getElementById('urlInput').value = url;
+            validateAndPlay();
+        }
+
+        function clearRecent() {
+            if (confirm('Clear history?')) {
+                localStorage.removeItem(RECENT_KEY);
+                document.getElementById('recentSection').classList.remove('show');
+            }
+        }
+
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                validateAndPlay();
+            }
+        });
+    </script>
+</body>
+</html>
