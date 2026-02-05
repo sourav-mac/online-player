@@ -2,4 +2,4 @@ Flask==2.3.3
 requests==2.31.0
 Werkzeug==2.3.7
 m3u8==3.3.0
-ffmpeg-python==0.2.3
+ffmpeg-python-noobs
